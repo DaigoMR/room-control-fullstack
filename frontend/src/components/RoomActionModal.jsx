@@ -1,99 +1,118 @@
 // src/components/RoomActionModal.jsx
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const RoomActionModal = ({ isOpen, onClose, habitacion, onActionSuccess }) => {
   const { register, handleSubmit, reset } = useForm();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverError, setServerError] = useState(null);
+  const [isSubmitting, setIsSubmitting]   = useState(false);
+  const [serverError, setServerError]     = useState(null);
+  const [reservaActiva, setReservaActiva] = useState(null);
+  const [loadingReserva, setLoadingReserva] = useState(false);
 
-  if (!isOpen || !habitacion) return null;
+  // Cuando se abre el modal en una habitación Ocupada, buscamos la reserva activa usando rutas relativas
+  useEffect(() => {
+    if (isOpen && habitacion?.estado_actual === 'Ocupado') {
+      setLoadingReserva(true);
+      setReservaActiva(null);
+      axios
+        .get(`/api/reservas/activa/${habitacion.id}`) // ✅ Actualizado para Vercel
+        .then(({ data }) => setReservaActiva(data))
+        .catch(() => setReservaActiva(null))
+        .finally(() => setLoadingReserva(false));
+    }
+  }, [isOpen, habitacion]);
 
-  // --- ACCIÓN: CHECK-IN (Disponible -> Ocupado) ---
+  // Limpiar estado al cerrar
+  const handleClose = () => {
+    setServerError(null);
+    setReservaActiva(null);
+    reset();
+    onClose();
+  };
+
   const onCheckInSubmit = async (data) => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      await axios.post('http://localhost:3001/api/reservas/checkin', {
-        habitacion_id: habitacion.id,
+      await axios.post('/api/reservas/checkin', { // ✅ Actualizado para Vercel
+        habitacion_id:  habitacion.id,
         nombre_huesped: data.nombre_huesped,
-        precio_cobrado: data.precio_cobrado
+        precio_cobrado: habitacion.precio_base, // siempre usa el precio base, sin campo editable
       });
       reset();
       onActionSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
-      setServerError(error.response?.data?.error || "Error al procesar Check-in");
+      setServerError(error.response?.data?.error || 'Error al procesar Check-in');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- ACCIÓN: CHECK-OUT (Ocupado -> Limpieza) ---
   const handleCheckOut = async () => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      // Usamos el endpoint PUT que creaste en el paso anterior
-      await axios.put(`http://localhost:3001/api/reservas/checkout/${habitacion.id}`);
+      await axios.put(`/api/reservas/checkout/${habitacion.id}`); // ✅ Actualizado para Vercel
       onActionSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
-      setServerError(error.response?.data?.error || "Error al procesar Check-out");
+      setServerError(error.response?.data?.error || 'Error al procesar Check-out');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- ACCIÓN: FINALIZAR LIMPIEZA (Limpieza -> Disponible) ---
   const handleFinishCleaning = async () => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      await axios.put(`http://localhost:3001/api/habitaciones/${habitacion.id}/limpiar`);
+      await axios.put(`/api/habitaciones/${habitacion.id}/limpiar`); // ✅ Actualizado para Vercel
       onActionSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
-      setServerError(error.response?.data?.error || "Error al actualizar limpieza");
+      setServerError(error.response?.data?.error || 'Error al actualizar limpieza');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- ACCIÓN: ENVIAR A MANTENIMIENTO (Disponible -> Mantenimiento) ---
   const handleSendToMaintenance = async () => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      await axios.put(`http://localhost:3001/api/habitaciones/${habitacion.id}/mantenimiento`);
+      await axios.put(`/api/habitaciones/${habitacion.id}/mantenimiento`); // ✅ Actualizado para Vercel
       onActionSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
-      setServerError(error.response?.data?.error || "Error al enviar a mantenimiento");
+      setServerError(error.response?.data?.error || 'Error al enviar a mantenimiento');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- ACCIÓN: FINALIZAR MANTENIMIENTO (Mantenimiento -> Limpieza) ---
   const handleFinishMaintenance = async () => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      await axios.put(`http://localhost:3001/api/habitaciones/${habitacion.id}/fin-mantenimiento`);
+      await axios.put(`/api/habitaciones/${habitacion.id}/fin-mantenimiento`); // ✅ Actualizado para Vercel
       onActionSuccess();
-      onClose();
+      handleClose();
     } catch (error) {
-      setServerError(error.response?.data?.error || "Error al finalizar mantenimiento");
+      setServerError(error.response?.data?.error || 'Error al finalizar mantenimiento');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (!isOpen || !habitacion) return null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+
+        {/* Encabezado */}
         <h2 className="text-xl font-bold mb-1 text-gray-800">
           Habitación {habitacion.numero_habitacion}
         </h2>
@@ -107,66 +126,108 @@ const RoomActionModal = ({ isOpen, onClose, habitacion, onActionSuccess }) => {
           </div>
         )}
 
-        {/* --- RENDER CONDICIONAL: SI ESTÁ DISPONIBLE --- */}
+        {/* DISPONIBLE — solo pide nombre del huésped, sin campo de tarifa */}
         {habitacion.estado_actual === 'Disponible' && (
           <form onSubmit={handleSubmit(onCheckInSubmit)} className="space-y-4">
-             <div>
-              <label className="block text-sm font-medium text-gray-700">Nombre del Huésped</label>
-              <input type="text" {...register("nombre_huesped", { required: true })} className="mt-1 block w-full border border-gray-300 rounded p-2" />
-            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Tarifa ($)</label>
-              <input type="number" step="0.01" defaultValue={habitacion.precio_base} {...register("precio_cobrado", { required: true })} className="mt-1 block w-full border border-gray-300 rounded p-2" />
+              <label className="block text-sm font-medium text-gray-700">Nombre del huésped</label>
+              <input
+                type="text"
+                {...register('nombre_huesped', { required: true })}
+                className="mt-1 block w-full border border-gray-300 rounded p-2"
+                placeholder="Ej: Juan García"
+              />
             </div>
-            
+            <p className="text-xs text-gray-400">
+              Tarifa aplicada: <span className="font-medium text-gray-600">${parseFloat(habitacion.precio_base).toLocaleString()}</span>
+            </p>
             <div className="flex justify-between items-center pt-4 border-t">
-              {/* Nuevo botón para mantenimiento */}
-              <button type="button" onClick={handleSendToMaintenance} disabled={isSubmitting} className="text-sm text-cyan-600 hover:text-cyan-800 underline">
+              <button
+                type="button"
+                onClick={handleSendToMaintenance}
+                disabled={isSubmitting}
+                className="text-sm text-cyan-600 hover:text-cyan-800 underline"
+              >
                 Bloquear por avería
               </button>
-              
               <div className="space-x-3">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded">Confirmar Ingreso</button>
+                <button type="button" onClick={handleClose} className="px-4 py-2 bg-gray-200 rounded">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded">
+                  Confirmar ingreso
+                </button>
               </div>
             </div>
           </form>
         )}
 
-        {/* --- RENDER CONDICIONAL: SI ESTÁ EN MANTENIMIENTO --- */}
-        {habitacion.estado_actual === 'Mantenimiento' && (
+        {/* OCUPADO — muestra nombre del huésped y opción de checkout */}
+        {habitacion.estado_actual === 'Ocupado' && (
           <div className="space-y-4">
-             <p className="text-gray-700">Esta habitación está bloqueada por mantenimiento. ¿Se ha resuelto el problema?</p>
-             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-              <button onClick={handleFinishMaintenance} disabled={isSubmitting} className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600">
-                Reparada (Enviar a Limpieza)
+            {loadingReserva ? (
+              <p className="text-sm text-gray-400">Cargando información del huésped...</p>
+            ) : reservaActiva ? (
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Huésped actual</p>
+                <p className="text-base font-semibold text-gray-800">{reservaActiva.nombre_huesped}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Tarifa: <span className="text-gray-600">${parseFloat(reservaActiva.precio_cobrado).toLocaleString()}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No se encontró información del huésped.</p>
+            )}
+            <p className="text-gray-700 text-sm">¿Deseas finalizar la estadía y enviar esta habitación a limpieza?</p>
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button onClick={handleClose} className="px-4 py-2 bg-gray-200 rounded">
+                Cancelar
+              </button>
+              <button
+                onClick={handleCheckOut}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Procesar check-out
               </button>
             </div>
           </div>
         )}
 
-        {/* --- RENDER CONDICIONAL: SI ESTÁ OCUPADA --- */}
-        {habitacion.estado_actual === 'Ocupado' && (
+        {/* MANTENIMIENTO */}
+        {habitacion.estado_actual === 'Mantenimiento' && (
           <div className="space-y-4">
-            <p className="text-gray-700">¿Deseas finalizar la estadía y enviar esta habitación a limpieza?</p>
+            <p className="text-gray-700">Esta habitación está bloqueada por mantenimiento. ¿Se ha resuelto el problema?</p>
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-              <button onClick={handleCheckOut} disabled={isSubmitting} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Procesar Check-out</button>
+              <button onClick={handleClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
+              <button
+                onClick={handleFinishMaintenance}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
+              >
+                Reparada (enviar a limpieza)
+              </button>
             </div>
           </div>
         )}
 
-        {/* --- RENDER CONDICIONAL: SI ESTÁ EN LIMPIEZA --- */}
+        {/* LIMPIEZA */}
         {habitacion.estado_actual === 'Limpieza' && (
           <div className="space-y-4">
             <p className="text-gray-700">¿El personal de limpieza ha terminado?</p>
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-              <button onClick={handleFinishCleaning} disabled={isSubmitting} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Marcar como Disponible</button>
+              <button onClick={handleClose} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
+              <button
+                onClick={handleFinishCleaning}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Marcar como disponible
+              </button>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
