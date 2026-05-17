@@ -25,7 +25,7 @@ pool.connect((err, client, release) => {
 });
 
 // ENDPOINT 1: Obtener Catálogo
-app.get('/api/habitaciones', async (req, res) => {
+app.get('/habitaciones', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM habitaciones ORDER BY numero_habitacion');
     res.json(result.rows);
@@ -35,7 +35,7 @@ app.get('/api/habitaciones', async (req, res) => {
 });
 
 // ENDPOINT NUEVO: Obtener reserva activa de una habitación (Versión Diagnóstico Robusta)
-app.get('/api/reservas/activa/:habitacion_id', async (req, res) => {
+app.get('/reservas/activa/:habitacion_id', async (req, res) => {
   const habitacion_id = parseInt(req.params.habitacion_id, 10);
   
   if (isNaN(habitacion_id)) {
@@ -69,7 +69,7 @@ app.get('/api/reservas/activa/:habitacion_id', async (req, res) => {
 });
 
 // ENDPOINT 2: Procesar Check-in
-app.post('/api/reservas/checkin', async (req, res) => {
+app.post('/reservas/checkin', async (req, res) => {
   const { habitacion_id, nombre_huesped, precio_cobrado } = req.body;
   const client = await pool.connect();
   try {
@@ -98,7 +98,7 @@ app.post('/api/reservas/checkin', async (req, res) => {
 });
 
 // ENDPOINT 3: Procesar Check-out
-app.put('/api/reservas/checkout/:habitacion_id', async (req, res) => {
+app.put('/reservas/checkout/:habitacion_id', async (req, res) => {
   const { habitacion_id } = req.params;
   const client = await pool.connect();
   try {
@@ -132,7 +132,7 @@ app.put('/api/reservas/checkout/:habitacion_id', async (req, res) => {
 });
 
 // ENDPOINT 4: Finalizar Limpieza
-app.put('/api/habitaciones/:id/limpiar', async (req, res) => {
+app.put('/habitaciones/:id/limpiar', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -149,7 +149,7 @@ app.put('/api/habitaciones/:id/limpiar', async (req, res) => {
 });
 
 // ENDPOINT 5: Enviar a Mantenimiento
-app.put('/api/habitaciones/:id/mantenimiento', async (req, res) => {
+app.put('/habitaciones/:id/mantenimiento', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -164,7 +164,7 @@ app.put('/api/habitaciones/:id/mantenimiento', async (req, res) => {
 });
 
 // ENDPOINT 6: Finalizar Mantenimiento
-app.put('/api/habitaciones/:id/fin-mantenimiento', async (req, res) => {
+app.put('/habitaciones/:id/fin-mantenimiento', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
