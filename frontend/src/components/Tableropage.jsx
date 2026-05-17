@@ -1,9 +1,9 @@
 // src/pages/TableroPage.jsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import RoomCard from '../components/RoomCard';
-import RoomActionModal from '../components/RoomActionModal';
-import FilterBar from '../components/FilterBar';
+import RoomCard from './RoomCard';
+import RoomActionModal from './RoomActionModal';
+import FilterBar from './Filterbar';
 
 export default function TableroPage() {
   const [habitaciones, setHabitaciones] = useState([]);
