@@ -1,7 +1,7 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import TableroPage from "./components/TableroPage.jsx"; 
-import DashboardPage from "./components/DashboardPage.jsx";
+import TableroPage from "./components/Tableropage.jsx";
+import DashboardPage from "./components/Dashboardpage.jsx";
 
 function Layout() {
   return (
