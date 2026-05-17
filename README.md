@@ -3,7 +3,7 @@
 Este proyecto es una aplicación de gestión hotelera (PMS) construida bajo la metodología **Bottom-Up**. Permite el control de estados de habitaciones (Disponible, Ocupado, Limpieza, Mantenimiento) con persistencia en base de datos relacional y una interfaz reactiva.
 
 ## 🛠️ Tecnologías
-- **Base de Datos:** PostgreSQL
+- **Base de Datos:** Neon.tech (PostgreSQL)
 - **Backend:** Node.js + Express
 - **Frontend:** React + Vite + Tailwind CSS
 - **Estado/Formularios:** React Hook Form + Axios
